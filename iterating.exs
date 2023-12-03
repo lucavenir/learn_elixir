@@ -10,7 +10,7 @@ defmodule IterateMe do
   end
 end
 
-defmodule Reduce do
+defmodule MyReduce do
   def sum([head | tail], acc) do
     sum(tail, head + acc)
   end
@@ -20,7 +20,7 @@ defmodule Reduce do
   end
 end
 
-defmodule Map do
+defmodule MyMap do
   def double([head | tail]) do
     [head * 2, double(tail)]
   end
@@ -31,5 +31,9 @@ defmodule Map do
 end
 
 # using built-ins
-Enum.reduce([1, 2, 3, 4], 0, &+/2)
-Enum.map([1, 2, 3, 4], &(&1 * 2))
+# Enum.map(1..3, &IO.puts(&1))
+Enum.reduce(1..4, 0, &+/2)
+Enum.map(1..4, &(&1 * 2))
+
+# more enums
+Enum.map(%{1 => 1, 2 => 2, 3 => 3, 4 => 4}, fn {k, v} -> k * v end)
