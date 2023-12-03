@@ -31,9 +31,9 @@ defmodule MyMap do
 end
 
 # using built-ins
-# Enum.map(1..3, &IO.puts(&1))
-Enum.reduce(1..4, 0, &+/2)
-Enum.map(1..4, &(&1 * 2))
+# 1..3 |> Enum.map(&IO.puts(&1))
+1..4 |> Enum.reduce(0, &+/2)
+1..4 |> Enum.map(&(&1 * 2))
 
 # more enums
-Enum.map(%{1 => 1, 2 => 2, 3 => 3, 4 => 4}, fn {k, v} -> k * v end)
+%{1 => 1, 2 => 2, 3 => 3, 4 => 4} |> Enum.map(fn {k, v} -> k * v end)
