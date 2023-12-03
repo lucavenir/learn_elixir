@@ -37,3 +37,9 @@ end
 
 # more enums
 %{1 => 1, 2 => 2, 3 => 3, 4 => 4} |> Enum.map(fn {k, v} -> k * v end)
+
+# be lazy
+1..4 |> Stream.map(&(&1 * 3)) |> Stream.map(&(&1 ** 2)) |> Enum.reduce(0, &+/2)
+
+stream = Stream.unfold("hełło", &String.next_codepoint/1)
+Enum.take(stream, 91)
