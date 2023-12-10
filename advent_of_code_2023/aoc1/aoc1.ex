@@ -59,10 +59,10 @@ defmodule DayOne do
 end
 
 result_one =
-  File.stream!("aoc1.txt") |> Enum.map(&DayOne.retrieve_number/1) |> Enum.sum()
+  File.stream!("aoc1.txt") |> Stream.map(&DayOne.retrieve_number/1) |> Enum.sum()
 
 result_two =
-  File.stream!("aoc1.txt") |> Enum.map(&DayOne.retrieve_number_but_fancy/1) |> Enum.sum()
+  File.stream!("aoc1.txt") |> Stream.map(&DayOne.retrieve_number_but_fancy/1) |> Enum.sum()
 
 IO.puts(result_one)
 IO.puts(result_two)
