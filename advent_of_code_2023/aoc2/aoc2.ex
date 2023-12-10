@@ -1,47 +1,69 @@
 defmodule DayTwo do
-  @max_red 12
-  @max_green 13
-  @max_blue 14
+  @colors %{red: 12, green: 13, blue: 14}
 
   def compute_id(line) do
-    {number, _} =
-      line
-      |> String.split(":")
-      |> Stream.map(&String.trim/1)
-      |> Enum.at(0)
-      |> String.split(" ")
-      |> Stream.map(&String.trim/1)
-      |> Enum.at(1)
-      |> Integer.parse()
-
-    number
-  end
-
-  def is_game_ok(line) do
     line
     |> String.split(":")
+    |> Enum.at(0)
+    |> String.split(" ")
     |> Stream.map(&String.trim/1)
     |> Enum.at(1)
+    |> Integer.parse()
+    |> elem(0)
+  end
+
+  def is_game_ok(line), do: line |> get_play() |> Enum.all?(&is_ok/1)
+
+  def compute_power(line) do
+    max_green =
+      line
+      |> get_play()
+      |> Stream.map(&color_tuple/1)
+      |> max_color(@colors.green)
+
+    max_red =
+      line
+      |> get_play()
+      |> Stream.map(&color_tuple/1)
+      |> max_color(@colors.red)
+
+    max_blue =
+      line
+      |> get_play()
+      |> Stream.map(&color_tuple/1)
+      |> max_color(@colors.blue)
+
+    max_green * max_red * max_blue
+  end
+
+  defp max_color(tuple, color) do
+    tuple
+    |> Stream.filter(&(&1 |> elem(1) == color))
+    |> Stream.map(&elem(&1, 0))
+    |> Enum.max()
+  end
+
+  defp get_play(line) do
+    line
+    |> String.split(":")
+    |> Enum.at(1)
     |> String.split(";")
-    |> Stream.map(&String.trim/1)
     |> Stream.flat_map(&String.split(&1, ","))
-    |> Stream.map(&String.trim/1)
-    |> Enum.all?(&is_ok/1)
   end
 
   defp is_ok(play) do
-    split = play |> String.split(" ")
-    {number, _} = split |> Enum.at(0) |> String.trim() |> Integer.parse()
-
-    max =
-      case split |> Enum.at(1) |> String.trim() do
-        "red" -> @max_red
-        "green" -> @max_green
-        "blue" -> @max_blue
-      end
-
+    {number, max} = play |> color_tuple()
     number <= max
   end
+
+  defp color_tuple(play) do
+    split = play |> String.split(" ", trim: true) |> Stream.map(&String.trim/1)
+    {split |> Enum.at(0) |> Integer.parse() |> elem(0), split |> Enum.at(1) |> parse_color()}
+  end
+
+  defp parse_color("red"), do: @colors.red
+  defp parse_color("green"), do: @colors.green
+  defp parse_color("blue"), do: @colors.blue
 end
 
 result_one =
@@ -50,8 +72,10 @@ result_one =
   |> Stream.map(&DayTwo.compute_id/1)
   |> Enum.sum()
 
-# result_two =
-#   File.stream!("aoc2.txt") |> Enum.map(&DayTwo.retrieve_number_but_fancy/1) |> Enum.sum()
+result_two =
+  File.stream!("aoc2.txt")
+  |> Stream.map(&DayTwo.compute_power/1)
+  |> Enum.sum()
 
 IO.puts(result_one)
-# IO.puts(result_two)
+IO.puts(result_two)
