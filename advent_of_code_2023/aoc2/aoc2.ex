@@ -19,19 +19,19 @@ defmodule DayTwo do
       line
       |> get_play()
       |> Stream.map(&color_tuple/1)
-      |> max_color(@colors.green)
+      |> max_color(green())
 
     max_red =
       line
       |> get_play()
       |> Stream.map(&color_tuple/1)
-      |> max_color(@colors.red)
+      |> max_color(red())
 
     max_blue =
       line
       |> get_play()
       |> Stream.map(&color_tuple/1)
-      |> max_color(@colors.blue)
+      |> max_color(blue())
 
     max_green * max_red * max_blue
   end
@@ -61,9 +61,14 @@ defmodule DayTwo do
     {split |> Enum.at(0) |> Integer.parse() |> elem(0), split |> Enum.at(1) |> parse_color()}
   end
 
-  defp parse_color("red"), do: @colors.red
-  defp parse_color("green"), do: @colors.green
-  defp parse_color("blue"), do: @colors.blue
+  defp parse_color("red"), do: red()
+  defp parse_color("green"), do: green()
+  defp parse_color("blue"), do: blue()
+
+  defp green, do: colors().green
+  defp red, do: colors().red
+  defp blue, do: colors().blue
+  defp colors, do: @colors
 end
 
 result_one =
