@@ -1,0 +1,85 @@
+--- a/lib/servy/bear_controller.ex
++++ b/lib/servy/bear_controller.ex
+@@ -3,25 +3,20 @@ defmodule Servy.BearController do
+   alias Servy.Wildthings
+   alias Servy.Bear
+ 
+-  defp bear_item(bear) do
+-    "<li>#{bear.name} - #{bear.type}</li>"
+-  end
++  @templates_path Path.expand("../../templates", __DIR__)
+ 
+   def index(conv) do
+-    items = 
++    bears = 
+       Wildthings.list_bears()
+-      |> Enum.filter(&Bear.is_grizzly/1)
+       |> Enum.sort(&Bear.order_asc_by_name/2)
+-      |> Enum.map(&bear_item/1)
+-      |> Enum.join
+ 
+-    %{ conv | status: 200, resp_body: "<ul>#{items}</ul>" }    
++    render(conv, "index.eex", bears: bears)    
+   end
+ 
+   def show(conv, %{"id" => id}) do
+     bear = Wildthings.get_bear(id)
+ 
+-    %{ conv | status: 200, resp_body: "<h1>Bear #{bear.id}: #{bear.name}</h1>" }
++    render(conv, "show.eex", bear: bear)    
+   end
+ 
+   def create(conv, %{"name" => name, "type" => type}) do
+@@ -29,4 +24,13 @@ defmodule Servy.BearController do
+               resp_body: "Created a #{type} bear named #{name}!" }
+   end
+ 
++  defp render(conv, template, bindings \\ []) do
++    content =
++      @templates_path
++      |> Path.join(template)
++      |> EEx.eval_file(bindings)
++
++    %{ conv | status: 200, resp_body: content }
++  end
++
+ end
+--- a/mix.exs
++++ b/mix.exs
+@@ -6,7 +6,7 @@ defmodule Servy.Mixfile do
+       app: :servy,
+       version: "0.1.0",
+       elixir: "~> 1.14",
+-      start_permanent: Mix.env == :prod,
++      start_permanent: Mix.env() == :prod,
+       deps: deps()
+     ]
+   end
+@@ -14,7 +14,7 @@ defmodule Servy.Mixfile do
+   # Run "mix help compile.app" to learn about applications.
+   def application do
+     [
+-      extra_applications: [:logger]
++      extra_applications: [:logger, :eex]
+     ]
+   end
+ 
+new file mode 100644
+--- /dev/null
++++ b/templates/index.eex
+@@ -0,0 +1,7 @@
++<h1>All The Bears!</h1>
++
++<ul>
++  <%= for bear <- bears do %>
++    <li><%= bear.name %> - <%= bear.type %></li>
++  <% end %>
++</ul>
+new file mode 100644
+--- /dev/null
++++ b/templates/show.eex
+@@ -0,0 +1,4 @@
++<h1>Show Bear</h1>
++<p>
++Is <%= bear.name %> hibernating? <strong><%= bear.hibernating %></strong>
++</p>

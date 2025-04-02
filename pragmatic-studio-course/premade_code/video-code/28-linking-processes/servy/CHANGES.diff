@@ -1,0 +1,95 @@
+--- a/lib/servy/bear_controller.ex
++++ b/lib/servy/bear_controller.ex
+@@ -24,7 +24,7 @@ defmodule Servy.BearController do
+               resp_body: "Created a #{type} bear named #{name}!" }
+   end
+ 
+-  defp render(conv, template, bindings \\ []) do
++  defp render(conv, template, bindings) do
+     content =
+       @templates_path
+       |> Path.join(template)
+--- a/lib/servy/handler.ex
++++ b/lib/servy/handler.ex
+@@ -4,8 +4,7 @@ defmodule Servy.Handler do
+ 
+   alias Servy.Conv
+   alias Servy.BearController
+-  alias Servy.VideoCam
+-  
++    
+   @pages_path Path.expand("../../pages", __DIR__)
+ 
+   import Servy.Plugins, only: [rewrite_path: 1, log: 1, track: 1]
+new file mode 100644
+--- /dev/null
++++ b/lib/servy/kick_starter.ex
+@@ -0,0 +1,52 @@
++defmodule Servy.KickStarter do
++  use GenServer
++
++  def start do
++    IO.puts "Starting the kickstarter..."
++    GenServer.start(__MODULE__, :ok, name: __MODULE__)
++  end
++
++  def init(:ok) do
++    Process.flag(:trap_exit, true)
++    server_pid = start_server()
++    {:ok, server_pid}
++  end
++
++  def handle_info({:EXIT, _pid, reason}, _state) do
++    IO.puts "HttpServer exited (#{inspect reason})"
++    server_pid = start_server()
++    {:noreply, server_pid}
++  end
++
++  defp start_server do
++    IO.puts "Starting the HTTP server..."
++    server_pid = spawn_link(Servy.HttpServer, :start, [4000])
++    Process.register(server_pid, :http_server)
++    server_pid
++  end
++end
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
+--- a/lib/servy/pledge_server_hand_rolled.ex
++++ b/lib/servy/pledge_server_hand_rolled.ex
+@@ -87,13 +87,6 @@ defmodule Servy.PledgeServerHandRolled do
+     {:ok, "pledge-#{:rand.uniform(1000)}"}
+   end
+ 
+-  defp fetch_recent_pledges_from_service do
+-    # CODE GOES HERE TO FETCH RECENT PLEDGES FROM EXTERNAL SERVICE
+-
+-    # Example return value:
+-    [ {"wilma", 15}, {"fred", 25} ]
+-  end
+-
+ end
+ 
+ # alias Servy.PledgeServerHandRolled

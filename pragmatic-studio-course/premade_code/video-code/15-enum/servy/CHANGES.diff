@@ -1,0 +1,206 @@
+new file mode 100644
+--- /dev/null
++++ b/lib/servy/bear.ex
+@@ -0,0 +1,12 @@
++defmodule Servy.Bear do
++  defstruct id: nil, name: "", type: "", hibernating: false
++
++  def is_grizzly(bear) do
++    bear.type == "Grizzly"
++  end
++
++  def order_asc_by_name(b1, b2) do
++    b1.name <= b2.name
++  end
++
++end
+new file mode 100644
+--- /dev/null
++++ b/lib/servy/bear_controller.ex
+@@ -0,0 +1,32 @@
++defmodule Servy.BearController do
++  
++  alias Servy.Wildthings
++  alias Servy.Bear
++
++  defp bear_item(bear) do
++    "<li>#{bear.name} - #{bear.type}</li>"
++  end
++
++  def index(conv) do
++    items = 
++      Wildthings.list_bears()
++      |> Enum.filter(&Bear.is_grizzly/1)
++      |> Enum.sort(&Bear.order_asc_by_name/2)
++      |> Enum.map(&bear_item/1)
++      |> Enum.join
++
++    %{ conv | status: 200, resp_body: "<ul>#{items}</ul>" }    
++  end
++
++  def show(conv, %{"id" => id}) do
++    bear = Wildthings.get_bear(id)
++
++    %{ conv | status: 200, resp_body: "<h1>Bear #{bear.id}: #{bear.name}</h1>" }
++  end
++
++  def create(conv, %{"name" => name, "type" => type}) do
++    %{ conv | status: 201, 
++              resp_body: "Created a #{type} bear named #{name}!" }
++  end
++
++end
+--- a/lib/servy/handler.ex
++++ b/lib/servy/handler.ex
+@@ -3,6 +3,7 @@ defmodule Servy.Handler do
+   @moduledoc "Handles HTTP requests."
+ 
+   alias Servy.Conv
++  alias Servy.BearController
+ 
+   @pages_path Path.expand("../../pages", __DIR__)
+ 
+@@ -25,17 +26,16 @@ defmodule Servy.Handler do
+   end
+ 
+   def route(%Conv{ method: "GET", path: "/bears" } = conv) do
+-    %{ conv | status: 200, resp_body: "Teddy, Smokey, Paddington" }    
++    BearController.index(conv)
+   end
+ 
+   def route(%Conv{ method: "GET", path: "/bears/" <> id } = conv) do
+-    %{ conv | status: 200, resp_body: "Bear #{id}" }
++    params = Map.put(conv.params, "id", id)
++    BearController.show(conv, params)
+   end
+ 
+-  # name=Baloo&type=Brown
+   def route(%Conv{method: "POST", path: "/bears"} = conv) do
+-    %{ conv | status: 201, 
+-              resp_body: "Created a #{conv.params["type"]} bear named #{conv.params["name"]}!" }
++    BearController.create(conv, conv.params)
+   end
+ 
+   def route(%Conv{method: "GET", path: "/about"} = conv) do
+@@ -86,7 +86,7 @@ response = Servy.Handler.handle(request)
+ IO.puts response
+ 
+ request = """
+-GET /bears HTTP/1.1
++GET /bigfoot HTTP/1.1
+ Host: example.com
+ User-Agent: ExampleBrowser/1.0
+ Accept: */*
+@@ -98,7 +98,7 @@ response = Servy.Handler.handle(request)
+ IO.puts response
+ 
+ request = """
+-GET /bigfoot HTTP/1.1
++GET /wildlife HTTP/1.1
+ Host: example.com
+ User-Agent: ExampleBrowser/1.0
+ Accept: */*
+@@ -109,8 +109,9 @@ response = Servy.Handler.handle(request)
+ 
+ IO.puts response
+ 
++
+ request = """
+-GET /bears/1 HTTP/1.1
++GET /about HTTP/1.1
+ Host: example.com
+ User-Agent: ExampleBrowser/1.0
+ Accept: */*
+@@ -122,20 +123,22 @@ response = Servy.Handler.handle(request)
+ IO.puts response
+ 
+ request = """
+-GET /wildlife HTTP/1.1
++POST /bears HTTP/1.1
+ Host: example.com
+ User-Agent: ExampleBrowser/1.0
+ Accept: */*
++Content-Type: application/x-www-form-urlencoded
++Content-Length: 21
+ 
++name=Baloo&type=Brown
+ """
+ 
+ response = Servy.Handler.handle(request)
+ 
+ IO.puts response
+ 
+-
+ request = """
+-GET /about HTTP/1.1
++GET /bears HTTP/1.1
+ Host: example.com
+ User-Agent: ExampleBrowser/1.0
+ Accept: */*
+@@ -147,18 +150,13 @@ response = Servy.Handler.handle(request)
+ IO.puts response
+ 
+ request = """
+-POST /bears HTTP/1.1
++GET /bears/1 HTTP/1.1
+ Host: example.com
+ User-Agent: ExampleBrowser/1.0
+ Accept: */*
+-Content-Type: application/x-www-form-urlencoded
+-Content-Length: 21
+ 
+-name=Baloo&type=Brown
+ """
+ 
+ response = Servy.Handler.handle(request)
+ 
+ IO.puts response
+-
+-
+--- a/lib/servy/parser.ex
++++ b/lib/servy/parser.ex
+@@ -13,8 +13,6 @@ defmodule Servy.Parser do
+ 
+     params = parse_params(headers["Content-Type"], params_string)
+ 
+-    IO.inspect header_lines
+-
+     %Conv{ 
+        method: method, 
+        path: path,
+new file mode 100644
+--- /dev/null
++++ b/lib/servy/wildthings.ex
+@@ -0,0 +1,32 @@
++defmodule Servy.Wildthings do
++  alias Servy.Bear
++
++  def list_bears do
++    [
++      %Bear{id: 1, name: "Teddy", type: "Brown", hibernating: true},
++      %Bear{id: 2, name: "Smokey", type: "Black"},
++      %Bear{id: 3, name: "Paddington", type: "Brown"},
++      %Bear{id: 4, name: "Scarface", type: "Grizzly", hibernating: true},
++      %Bear{id: 5, name: "Snow", type: "Polar"},      
++      %Bear{id: 6, name: "Brutus", type: "Grizzly"},
++      %Bear{id: 7, name: "Rosie", type: "Black", hibernating: true},
++      %Bear{id: 8, name: "Roscoe", type: "Panda"},
++      %Bear{id: 9, name: "Iceman", type: "Polar", hibernating: true},
++      %Bear{id: 10, name: "Kenai", type: "Grizzly"}
++    ]
++  end
++
++  def get_bear(id) when is_integer(id) do
++    Enum.find(list_bears(), fn(b) -> b.id == id end)
++  end
++
++  def get_bear(id) when is_binary(id) do
++    id |> String.to_integer |> get_bear
++  end
++
++
++
++
++
++
++end

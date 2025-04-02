@@ -1,0 +1,57 @@
+--- a/lib/servy/handler.ex
++++ b/lib/servy/handler.ex
+@@ -15,12 +15,22 @@ defmodule Servy.Handler do
+     request 
+     |> parse
+     |> rewrite_path
+-    |> log 
++    #|> log 
+     |> route 
+     |> track
+     |> format_response
+   end
+ 
++  def route(%Conv{ method: "GET", path: "/kaboom" } = conv) do
++    raise "Kaboom!"
++  end
++
++  def route(%Conv{ method: "GET", path: "/hibernate/" <> time } = conv) do
++    time |> String.to_integer |> :timer.sleep
++    
++    %{ conv | status: 200, resp_body: "Awake!" }          
++  end
++
+   def route(%Conv{ method: "GET", path: "/wildthings" } = conv) do
+     %{ conv | status: 200, resp_body: "Bears, Lions, Tigers" }          
+   end
+--- a/lib/servy/http_server.ex
++++ b/lib/servy/http_server.ex
+@@ -34,7 +34,7 @@ defmodule Servy.HttpServer do
+     IO.puts "⚡️  Connection accepted!\n"
+ 
+     # Receives the request and sends a response over the client socket.
+-    serve(client_socket)
++    spawn(fn -> serve(client_socket) end)
+ 
+     # Loop back to wait and accept the next connection.
+     accept_loop(listen_socket)
+@@ -45,6 +45,8 @@ defmodule Servy.HttpServer do
+   sends a response back over the same socket.
+   """
+   def serve(client_socket) do
++    IO.puts "#{inspect self()}: Working on it!"
++    
+     client_socket
+     |> read_request
+     |> Servy.Handler.handle
+--- a/mix.exs
++++ b/mix.exs
+@@ -14,7 +14,7 @@ defmodule Servy.Mixfile do
+   # Run "mix help compile.app" to learn about applications.
+   def application do
+     [
+-      extra_applications: [:logger, :eex]
++      extra_applications: [:logger, :eex, :observer, :wx, :runtime_tools]
+     ]
+   end
+ 

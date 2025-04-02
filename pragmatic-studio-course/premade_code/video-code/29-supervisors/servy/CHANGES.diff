@@ -1,0 +1,120 @@
+--- a/lib/servy/kick_starter.ex
++++ b/lib/servy/kick_starter.ex
+@@ -1,9 +1,9 @@
+ defmodule Servy.KickStarter do
+   use GenServer
+ 
+-  def start do
++  def start_link(_arg) do
+     IO.puts "Starting the kickstarter..."
+-    GenServer.start(__MODULE__, :ok, name: __MODULE__)
++    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+   end
+ 
+   def init(:ok) do
+@@ -25,28 +25,3 @@ defmodule Servy.KickStarter do
+     server_pid
+   end
+ end
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+--- a/lib/servy/pledge_server.ex
++++ b/lib/servy/pledge_server.ex
+@@ -10,9 +10,9 @@ defmodule Servy.PledgeServer do
+ 
+   # Client Interface
+ 
+-  def start do
++  def start_link(_arg) do
+     IO.puts "Starting the pledge server..."
+-    GenServer.start(__MODULE__, %State{}, name: @name)
++    GenServer.start_link(__MODULE__, %State{}, name: @name)
+   end
+ 
+   def create_pledge(name, amount) do
+--- a/lib/servy/sensor_server.ex
++++ b/lib/servy/sensor_server.ex
+@@ -1,14 +1,15 @@
+ defmodule Servy.SensorServer do
+ 
+   @name :sensor_server
+-  @refresh_interval :timer.seconds(5) # :timer.minutes(60)
++  @refresh_interval :timer.minutes(60) # :timer.seconds(5)
+ 
+   use GenServer
+ 
+   # Client Interface
+ 
+-  def start do
+-    GenServer.start(__MODULE__, %{}, name: @name)
++  def start_link(interval) do
++    IO.puts "Starting the sensor server with #{interval} min refresh..."
++    GenServer.start_link(__MODULE__, %{}, name: @name)
+   end
+ 
+   def get_sensor_data do
+new file mode 100644
+--- /dev/null
++++ b/lib/servy/services_supervisor.ex
+@@ -0,0 +1,17 @@
++defmodule Servy.ServicesSupervisor do
++  use Supervisor
++
++  def start_link(_arg) do
++    IO.puts "Starting the services supervisor..."
++    Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
++  end
++
++  def init(:ok) do
++    children = [
++      Servy.PledgeServer,
++      {Servy.SensorServer, 60}
++    ]
++
++    Supervisor.init(children, strategy: :one_for_one)
++  end
++end
+new file mode 100644
+--- /dev/null
++++ b/lib/servy/supervisor.ex
+@@ -0,0 +1,17 @@
++defmodule Servy.Supervisor do
++  use Supervisor
++
++  def start_link do
++    IO.puts "Starting THE supervisor..."
++    Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
++  end
++
++  def init(:ok) do
++    children = [
++      Servy.KickStarter,
++      Servy.ServicesSupervisor
++    ]
++
++    Supervisor.init(children, strategy: :one_for_one)
++  end
++end

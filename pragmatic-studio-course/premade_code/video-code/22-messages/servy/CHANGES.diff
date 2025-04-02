@@ -1,0 +1,63 @@
+--- a/lib/servy/handler.ex
++++ b/lib/servy/handler.ex
+@@ -4,7 +4,8 @@ defmodule Servy.Handler do
+ 
+   alias Servy.Conv
+   alias Servy.BearController
+-
++  alias Servy.VideoCam
++  
+   @pages_path Path.expand("../../pages", __DIR__)
+ 
+   import Servy.Plugins, only: [rewrite_path: 1, log: 1, track: 1]
+@@ -15,13 +16,29 @@ defmodule Servy.Handler do
+     request 
+     |> parse
+     |> rewrite_path
+-    #|> log 
++    |> log 
+     |> route 
+     |> track
+     |> format_response
+   end
+ 
+-  def route(%Conv{ method: "GET", path: "/kaboom" } = conv) do
++  def route(%Conv{ method: "GET", path: "/snapshots" } = conv) do
++    parent = self() # the request-handling process
++
++    spawn(fn -> send(parent, {:result, VideoCam.get_snapshot("cam-1")}) end)
++    spawn(fn -> send(parent, {:result, VideoCam.get_snapshot("cam-2")}) end)
++    spawn(fn -> send(parent, {:result, VideoCam.get_snapshot("cam-3")}) end)
++
++    snapshot1 = receive do {:result, filename} -> filename end
++    snapshot2 = receive do {:result, filename} -> filename end
++    snapshot3 = receive do {:result, filename} -> filename end
++
++    snapshots = [snapshot1, snapshot2, snapshot3]
++
++    %{ conv | status: 200, resp_body: inspect snapshots}
++  end
++
++  def route(%Conv{ method: "GET", path: "/kaboom" }) do
+     raise "Kaboom!"
+   end
+ 
+new file mode 100644
+--- /dev/null
++++ b/lib/servy/video_cam.ex
+@@ -0,0 +1,15 @@
++defmodule Servy.VideoCam do
++  @doc """
++  Simulates sending a request to an external API
++  to get a snapshot image from a video camera.
++  """
++  def get_snapshot(camera_name) do
++    # CODE GOES HERE TO SEND A REQUEST TO THE EXTERNAL API
++
++    # Sleep for 1 second to simulate that the API can be slow:
++    :timer.sleep(1000)
++
++    # Example response returned from the API:
++    "#{camera_name}-snapshot.jpg"
++  end
++end
