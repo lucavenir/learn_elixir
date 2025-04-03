@@ -1,59 +1,30 @@
 defmodule Servy.Handler do
-  require Logger
+  @moduledoc """
+  Handles HTTP requests
+  """
 
+  alias Servy.Plugins
+  alias Servy.Parser
+  alias Servy.Conv
+  alias Servy.BearController
+
+  @pages_path Path.expand("pages", File.cwd!())
+
+  @doc """
+  Transforms a request into a response
+  """
   def handle(request) do
     request
-    |> parse()
-    |> rewrite_path()
-    |> log()
+    |> Parser.parse()
+    |> Plugins.rewrite_path()
+    |> Plugins.log()
     |> route()
-    |> track()
+    |> Plugins.track()
     |> format_response()
   end
 
-  def track(%{status: 404, path: path} = conv) do
-    Logger.warning("Error: #{path} not found")
-    conv
-  end
-
-  def track(conv), do: conv
-
-  def rewrite_path(%{path: "/wildlife"} = conv) do
-    %{conv | path: "/wildthings"}
-  end
-
-  def rewrite_path(%{path: path} = conv) do
-    ~r{\/(?<thing>\w+)\?id=(?<id>\d+)}
-    |> Regex.named_captures(path)
-    |> do_rewrite_path(conv)
-  end
-
-  defp do_rewrite_path(%{"thing" => thing, "id" => id}, conv) do
-    %{conv | path: "/#{thing}/#{id}"}
-  end
-
-  defp do_rewrite_path(nil, conv), do: conv
-
-  def log(conv), do: IO.inspect(conv)
-
-  def parse(request) do
-    [method, path, _version] =
-      request
-      |> String.split("\n")
-      |> List.first()
-      |> String.split(" ")
-
-    %{
-      method: method,
-      path: path,
-      resp_body: "",
-      status: nil
-    }
-  end
-
-  def route(%{method: "GET", path: "/pages/" <> page} = conv) do
-    "../pages"
-    |> Path.expand(__DIR__)
+  def route(%Conv{method: "GET", path: "/pages/" <> page} = conv) do
+    @pages_path
     |> Path.join("#{page}.html")
     |> File.read()
     |> case do
@@ -63,9 +34,8 @@ defmodule Servy.Handler do
     end
   end
 
-  def route(%{method: "GET", path: "/about"} = conv) do
-    "../pages"
-    |> Path.expand(__DIR__)
+  def route(%Conv{method: "GET", path: "/about"} = conv) do
+    @pages_path
     |> Path.join("about.html")
     |> File.read()
     |> case do
@@ -75,15 +45,15 @@ defmodule Servy.Handler do
     end
   end
 
-  def route(%{method: "GET", path: "/wildthings"} = conv) do
+  def route(%Conv{method: "GET", path: "/wildthings"} = conv) do
     %{conv | status: 200, resp_body: "Bears, Lions, Tigers"}
   end
 
-  def route(%{method: "GET", path: "/bears"} = conv) do
-    %{conv | status: 200, resp_body: "Teddy, Smokey, Paddington"}
+  def route(%Conv{method: "GET", path: "/bears"} = conv) do
+    BearController.index(conv)
   end
 
-  def route(%{method: "GET", path: "/bears/new"} = conv) do
+  def route(%Conv{method: "GET", path: "/bears/new"} = conv) do
     "../pages"
     |> Path.expand(__DIR__)
     |> Path.join("form.html")
@@ -95,35 +65,32 @@ defmodule Servy.Handler do
     end
   end
 
-  def route(%{method: "GET", path: "/bears/" <> id} = conv) do
-    %{conv | status: 200, resp_body: "#{id} is a bear, apparently"}
+  def route(%Conv{method: "GET", path: "/bears/" <> id} = conv) do
+    params = Map.put(conv.params, "id", id)
+    BearController.show(conv, params)
   end
 
-  def route(%{method: "DELETE", path: "/bears/" <> id} = conv) do
-    %{conv | status: 204, resp_body: "bear #{id} is gone"}
+  def route(%Conv{method: "DELETE", path: "/bears/" <> id} = conv) do
+    params = Map.put(conv.params, "id", id)
+    BearController.delete(conv, params)
   end
 
-  def route(%{method: "GET", path: path} = conv) do
-    %{conv | status: 404, resp_body: "#{path} route not found"}
+  def route(%Conv{method: "POST", path: "/bears"} = conv) do
+    BearController.create(conv, conv.params)
   end
 
-  def format_response(conv) do
+  def route(%Conv{method: "GET", path: path} = conv) do
+    %{conv | status: 404, resp_body: "#{path} route nConvot found"}
+  end
+
+  def format_response(%Conv{} = conv) do
     """
-    HTTP/1.1 #{conv.status} #{status_reason(conv.status)}
+    HTTP/1.1 #{Conv.full_status(conv)}
     Content-Type: text/html
     Content-Length: #{Kernel.byte_size(conv.resp_body) + Kernel.byte_size(emojify(conv.status))}
 
      #{emojify(conv.status)} #{conv.resp_body}
     """
-  end
-
-  defp status_reason(code) do
-    %{
-      200 => "OK",
-      204 => "No Content",
-      404 => "Not Found",
-      500 => "Internal Server Error"
-    }[code]
   end
 
   defp emojify(code) when code >= 200 and code < 300, do: "😃"
@@ -226,6 +193,20 @@ Host: example.com
 User-Agent: ExampleBrowser/1.0
 Accept: */*
 
+"""
+
+response = Servy.Handler.handle(request)
+IO.puts(response)
+
+request = """
+POST /bears HTTP/1.1
+Host: example.com
+User-Agent: ExampleBrowser/1.0
+Accept: */*
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 21
+
+name=Baloo&type=Brown
 """
 
 response = Servy.Handler.handle(request)
