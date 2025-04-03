@@ -1,0 +1,9 @@
+<.form :let={f} for={@changeset} action={@action}>
+  <.input field={f[:name]} type="text" label="Name" />
+  <.input field={f[:type]} type="text" label="Type" />
+  <.input field={f[:hibernating]} type="checkbox" label="Hibernating" />
+  <footer>
+    <.button variant="primary">Save Bear</.button>
+    <.button :if={@return_to} href={@return_to}>Cancel</.button>
+  </footer>
+</.form>

@@ -1,0 +1,8 @@
+<Layouts.app flash={@flash}>
+  <.header>
+    New Bear
+    <:subtitle>Use this form to manage bear records in your database.</:subtitle>
+  </.header>
+
+  <.bear_form changeset={@changeset} action={~p"/bears"} return_to={~p"/bears"} />
+</Layouts.app>
