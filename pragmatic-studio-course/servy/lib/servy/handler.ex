@@ -54,7 +54,7 @@ defmodule Servy.Handler do
   end
 
   def route(%Conv{method: "GET", path: "/bears/new"} = conv) do
-    "../pages"
+    @pages_path
     |> Path.expand(__DIR__)
     |> Path.join("form.html")
     |> File.read()
