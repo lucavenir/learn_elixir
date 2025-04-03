@@ -8,6 +8,7 @@ defmodule Servy.Conv do
   defp status_reason(code) do
     %{
       200 => "OK",
+      201 => "Created",
       204 => "No Content",
       404 => "Not Found",
       500 => "Internal Server Error"

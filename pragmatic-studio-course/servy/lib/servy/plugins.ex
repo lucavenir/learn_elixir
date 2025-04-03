@@ -7,7 +7,10 @@ defmodule Servy.Plugins do
   require Logger
 
   def track(%Conv{status: 404, path: path} = conv) do
-    Logger.warning("Error: #{path} not found")
+    if Mix.env() != :test do
+      Logger.warning("Error: #{path} not found")
+    end
+
     conv
   end
 
@@ -29,5 +32,11 @@ defmodule Servy.Plugins do
 
   defp do_rewrite_path(nil, conv), do: conv
 
-  def log(%Conv{} = conv), do: IO.inspect(conv)
+  def log(%Conv{} = conv) do
+    if Mix.env() == :dev do
+      IO.inspect(conv)
+    end
+
+    conv
+  end
 end
