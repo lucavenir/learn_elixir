@@ -37,6 +37,12 @@ defmodule Servy.Parser do
     |> URI.decode_query()
   end
 
+  defp do_parse_params("application/json", params) do
+    params
+    |> String.trim()
+    |> JSON.decode!()
+  end
+
   defp do_parse_params(_, _), do: %{}
 
   @doc false

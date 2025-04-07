@@ -6,6 +6,7 @@ defmodule Servy.Handler do
   alias Servy.Plugins
   alias Servy.Parser
   alias Servy.Conv
+  alias Servy.Api
   alias Servy.BearController
 
   @pages_path Path.expand("pages", File.cwd!())
@@ -20,7 +21,20 @@ defmodule Servy.Handler do
     |> Plugins.log()
     |> route()
     |> Plugins.track()
+    |> Conv.put_content_length()
     |> format_response()
+  end
+
+  def route(%Conv{method: "GET", path: "/kaboom"} = _conv) do
+    raise "kaboom"
+  end
+
+  def route(%Conv{method: "GET", path: "/hibernate" <> time} = conv) do
+    time
+    |> String.to_integer()
+    |> :timer.sleep()
+
+    %Conv{conv | status: 200, resp_body: "ok I'm awake now"}
   end
 
   def route(%Conv{method: "GET", path: "/pages/" <> page} = conv) do
@@ -53,6 +67,10 @@ defmodule Servy.Handler do
     BearController.index(conv)
   end
 
+  def route(%Conv{method: "GET", path: "/api/bears"} = conv) do
+    Api.BearController.index(conv)
+  end
+
   def route(%Conv{method: "GET", path: "/bears/new"} = conv) do
     @pages_path
     |> Path.expand(__DIR__)
@@ -79,6 +97,10 @@ defmodule Servy.Handler do
     BearController.create(conv, conv.params)
   end
 
+  def route(%Conv{method: "POST", path: "/api/bears"} = conv) do
+    Api.BearController.create(conv, conv.params)
+  end
+
   def route(%Conv{method: "GET", path: path} = conv) do
     %{conv | status: 404, resp_body: "#{path} route not found"}
   end
@@ -86,15 +108,17 @@ defmodule Servy.Handler do
   def format_response(%Conv{} = conv) do
     """
     HTTP/1.1 #{Conv.full_status(conv)}\r
-    Content-Type: text/html\r
-    Content-Length: #{Kernel.byte_size(conv.resp_body) + Kernel.byte_size(emojify(conv.status))}\r
+    #{format_response_headers(conv)}
     \r
-    #{emojify(conv.status)} #{conv.resp_body}
+    #{conv.resp_body}
     """
   end
 
-  defp emojify(code) when code >= 200 and code < 300, do: "😃"
-  defp emojify(code) when code >= 300 and code < 400, do: "😐"
-  defp emojify(code) when code >= 400 and code < 500, do: "😞"
-  defp emojify(code) when code >= 500, do: "😱"
+  def format_response_headers(%Conv{} = conv) do
+    conv.resp_headers
+    |> Stream.map(fn {key, value} -> "#{key}: #{value}\r" end)
+    |> Enum.sort()
+    |> Enum.reverse()
+    |> Enum.join("\n")
+  end
 end

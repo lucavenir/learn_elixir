@@ -1,6 +1,8 @@
 defmodule Servy.Wildthings do
   alias Servy.Bear
 
+  @db_path Path.expand("db", File.cwd!())
+
   def get_bear(id) when is_binary(id) do
     id
     |> String.to_integer()
@@ -11,18 +13,19 @@ defmodule Servy.Wildthings do
     Enum.find(list_bears(), fn bear -> bear.id == id end)
   end
 
-  def list_bears do
-    [
-      %Bear{id: 1, name: "Teddy", type: "Brown", hibernating: true},
-      %Bear{id: 2, name: "Smokey", type: "Black"},
-      %Bear{id: 3, name: "Paddington", type: "Brown"},
-      %Bear{id: 4, name: "Scarface", type: "Grizzly", hibernating: true},
-      %Bear{id: 5, name: "Snow", type: "Polar"},
-      %Bear{id: 6, name: "Brutus", type: "Grizzly"},
-      %Bear{id: 7, name: "Rosie", type: "Black", hibernating: true},
-      %Bear{id: 8, name: "Roscoe", type: "Panda"},
-      %Bear{id: 9, name: "Iceman", type: "Polar", hibernating: true},
-      %Bear{id: 10, name: "Kenai", type: "Grizzly"}
-    ]
+  def list_bears() do
+    @db_path
+    |> Path.join("bears.json")
+    |> File.read!()
+    |> JSON.decode!()
+    |> Map.fetch!("bears")
+    |> Enum.map(fn map ->
+      %Bear{
+        id: map["id"],
+        name: map["name"],
+        type: map["type"],
+        hibernating: map["hibernating"] || false
+      }
+    end)
   end
 end
