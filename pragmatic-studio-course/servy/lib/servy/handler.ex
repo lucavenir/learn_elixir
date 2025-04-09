@@ -25,6 +25,27 @@ defmodule Servy.Handler do
     |> format_response()
   end
 
+  def route(%Conv{method: "POST", path: "/pledges"} = conv) do
+    Servy.PledgeController.create(conv, conv.params)
+  end
+
+  def route(%Conv{method: "GET", path: "/pledges"} = conv) do
+    Servy.PledgeController.index(conv)
+  end
+
+  def route(%Conv{method: "GET", path: "/sensors"} = conv) do
+    bigfoot_task = Task.async(Servy.Tracker, :get_location, ["bigfoot"])
+
+    snapshots =
+      ["cam-1", "cam-2", "cam-3"]
+      |> Enum.map(&Task.async(Servy.VideoCam, :get_snapshot, [&1]))
+      |> Enum.map(&Task.await/1)
+
+    where_is_bigfoot = Task.await(bigfoot_task)
+
+    %{conv | status: 200, resp_body: inspect({snapshots, where_is_bigfoot})}
+  end
+
   def route(%Conv{method: "GET", path: "/kaboom"} = _conv) do
     raise "kaboom"
   end
