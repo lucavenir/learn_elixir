@@ -28,9 +28,9 @@ defmodule Servy.PledgeServer do
 
   # helper functions
 
-  def start(initial_state \\ []) do
+  def start_link(initial_state \\ []) do
     IO.puts("Starting the pledge server...")
-    GenServer.start(__MODULE__, %State{}, name: __MODULE__)
+    GenServer.start_link(__MODULE__, %State{}, name: __MODULE__)
   end
 
   # server callbacks

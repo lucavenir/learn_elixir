@@ -2,15 +2,15 @@ defmodule Servy.SensorServer do
   use GenServer
 
   defmodule State do
-    @default_refresh_interval :timer.seconds(5)
+    @default_refresh_interval :timer.minutes(5)
     defstruct snapshots: [],
               location: %{lat: nil, lng: nil},
               refresh_interval: @default_refresh_interval,
               ref: nil
   end
 
-  def start() do
-    GenServer.start(__MODULE__, nil, name: __MODULE__)
+  def start_link(interval) do
+    GenServer.start_link(__MODULE__, interval, name: __MODULE__)
   end
 
   def get_sensor_data() do
@@ -22,8 +22,8 @@ defmodule Servy.SensorServer do
   end
 
   @impl true
-  def init(_) do
-    initial_state = refresh()
+  def init(interval) do
+    initial_state = refresh(%State{refresh_interval: interval})
     {:ok, initial_state}
   end
 
